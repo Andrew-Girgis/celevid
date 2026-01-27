@@ -1,0 +1,21 @@
+[project]
+name = "celevid"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "accelerate>=1.12.0",
+    "ffmpeg-python>=0.2.0",
+    "google-genai>=1.60.0",
+    "google-generativeai>=0.8.6",
+    "huggingface-hub>=0.36.0",
+    "librosa>=0.11.0",
+    "openai>=2.15.0",
+    "pysubs2>=1.8.0",
+    "python-dotenv>=1.2.1",
+    "requests>=2.32.5",
+    "soundfile>=0.13.1",
+    "torch>=2.10.0",
+    "transformers>=4.57.6",
+]
