@@ -6,6 +6,11 @@ Uses Gemini to intelligently segment, assess, and reorder content.
 import os
 import json
 from typing import List, Dict, Any, Tuple, Optional
+
+try:
+    from dotenv import load_dotenv
+except ImportError:  # pragma: no cover
+    load_dotenv = None
 try:
     import google.genai as genai
     USE_NEW_API = True
@@ -61,6 +66,11 @@ class ScriptOrchestrator:
 
     def __init__(self, api_key: Optional[str] = None):
         """Initialize with Gemini API."""
+        # Load local .env (if available) so GEMINI_API_KEY can be provided without
+        # manually exporting environment variables.
+        if load_dotenv is not None:
+            load_dotenv(override=False)
+
         if api_key is None:
             api_key = os.getenv("GEMINI_API_KEY")
             if not api_key:
