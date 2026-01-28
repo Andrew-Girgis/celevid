@@ -13,7 +13,7 @@ from video_editor import VideoEditor
 from caption_service import CaptionService
 from audio_processor import AudioProcessor, VideoQualityPresets, process_video_with_quality, normalize_video_to_mp4
 from transcript_cleaner import TranscriptCleaner
-from content_editor import ContentEditor
+from content_editor_v2 import ContentEditorV2
 
 
 def transcribe_video(video_path: str, output_dir: Path, audio_path: str = None) -> dict:
@@ -30,7 +30,17 @@ def transcribe_video(video_path: str, output_dir: Path, audio_path: str = None) 
     """
     print(f"\n📝 Transcribing {Path(video_path).name}...")
 
-    device = "mps" if torch.backends.mps.is_available() else "cpu"
+    # Auto-detect best device: CUDA (NVIDIA GPU) > MPS (Apple Metal) > CPU
+    if torch.cuda.is_available():
+        device = "cuda"
+        print("🚀 Using NVIDIA GPU (CUDA)")
+    elif torch.backends.mps.is_available():
+        device = "mps"
+        print("🚀 Using Apple Metal GPU (MPS)")
+    else:
+        device = "cpu"
+        print("⚠️  Using CPU (slower)")
+
     pipe = pipeline(
         "automatic-speech-recognition",
         model="distil-whisper/distil-large-v3",
@@ -161,8 +171,8 @@ def process_video(
     if content_edit:
         print("\n✂️  Analyzing content for cuts (repetitions, mistakes)...")
         try:
-            content_editor = ContentEditor()
-            cuts = content_editor.analyze_transcript(transcript)
+            content_editor = ContentEditorV2()
+            cuts, segments = content_editor.analyze_transcript(transcript)
 
             if cuts:
                 print(f"Found {len(cuts)} content cuts:")
@@ -409,8 +419,8 @@ def process_multiple_videos(
     if content_edit:
         print("\n✂️  Analyzing combined video for content cuts (repetitions, mistakes)...")
         try:
-            content_editor = ContentEditor()
-            cuts = content_editor.analyze_transcript(merged_transcript)
+            content_editor = ContentEditorV2()
+            cuts, segments = content_editor.analyze_transcript(merged_transcript)
 
             if cuts:
                 print(f"Found {len(cuts)} content cuts in combined video:")

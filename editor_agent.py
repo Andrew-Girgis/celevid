@@ -83,7 +83,17 @@ def transcribe_video(video_path: str) -> dict:
     """Transcribe video with word-level timestamps."""
     print(f"Transcribing {video_path}...")
 
-    device = "mps" if torch.backends.mps.is_available() else "cpu"
+    # Auto-detect best device: CUDA (NVIDIA GPU) > MPS (Apple Metal) > CPU
+    if torch.cuda.is_available():
+        device = "cuda"
+        print("🚀 Using NVIDIA GPU (CUDA)")
+    elif torch.backends.mps.is_available():
+        device = "mps"
+        print("🚀 Using Apple Metal GPU (MPS)")
+    else:
+        device = "cpu"
+        print("⚠️  Using CPU (slower)")
+
     pipe = pipeline(
         "automatic-speech-recognition",
         model="distil-whisper/distil-large-v3",
@@ -112,8 +122,61 @@ def transcribe_video(video_path: str) -> dict:
 
 
 def main():
+    # Check for agentic mode
+    if '--agentic' in sys.argv:
+        from agentic_pipeline import AgenticVideoEditor
+
+        # Extract video paths (non-flag arguments)
+        video_paths = [arg for arg in sys.argv[1:] if not arg.startswith('--') and Path(arg).exists()]
+
+        if not video_paths:
+            print("Usage: python editor_agent.py video1.mp4 video2.mp4 [video3.mp4 ...] --agentic")
+            print("\nOptions:")
+            print("  --agentic             Enable agentic multi-clip editing mode")
+            print("  --output DIR          Output directory (default: output)")
+            print("  --pause-threshold SEC Pause detection threshold (default: 1.0)")
+            print("  --skip-quality-check  Skip initial AI quality check")
+            sys.exit(1)
+
+        # Parse additional options
+        output_dir = "output"
+        pause_threshold = 1.0
+        skip_quality_check = '--skip-quality-check' in sys.argv
+
+        if '--output' in sys.argv:
+            idx = sys.argv.index('--output')
+            if idx + 1 < len(sys.argv):
+                output_dir = sys.argv[idx + 1]
+
+        if '--pause-threshold' in sys.argv:
+            idx = sys.argv.index('--pause-threshold')
+            if idx + 1 < len(sys.argv):
+                pause_threshold = float(sys.argv[idx + 1])
+
+        # Start agentic session
+        try:
+            editor = AgenticVideoEditor()
+            editor.start_session(
+                video_paths,
+                output_dir=output_dir,
+                pause_threshold=pause_threshold,
+                skip_initial_quality_check=skip_quality_check
+            )
+        except KeyboardInterrupt:
+            print("\n\n⚠️  Session interrupted")
+            sys.exit(0)
+        except Exception as e:
+            print(f"\n❌ Error: {e}")
+            import traceback
+            traceback.print_exc()
+            sys.exit(1)
+
+        return
+
+    # Original single-video mode
     if len(sys.argv) < 2:
         print("Usage: python editor_agent.py <video_file>")
+        print("   or: python editor_agent.py video1.mp4 video2.mp4 [...] --agentic")
         sys.exit(1)
 
     video_path = sys.argv[1]

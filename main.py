@@ -3,8 +3,16 @@ import torch
 import librosa
 import sys
 
-# Using MPS (Metal Performance Shaders) for Mac GPU acceleration
-device = "mps" if torch.backends.mps.is_available() else "cpu"
+# Auto-detect best device: CUDA (NVIDIA GPU) > MPS (Apple Metal) > CPU
+if torch.cuda.is_available():
+    device = "cuda"
+    print("🚀 Using NVIDIA GPU (CUDA)")
+elif torch.backends.mps.is_available():
+    device = "mps"
+    print("🚀 Using Apple Metal GPU (MPS)")
+else:
+    device = "cpu"
+    print("⚠️  Using CPU (slower)")
 
 pipe = pipeline(
     "automatic-speech-recognition",
